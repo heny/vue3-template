@@ -7,6 +7,10 @@
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 </script>
 <style lang="scss">
+body {
+  font-size: 14px;
+}
+
 /*修改滚动条样式*/
 ::-webkit-scrollbar {
   width: 6px;

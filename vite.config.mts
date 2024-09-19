@@ -12,7 +12,6 @@ import { visualizer } from 'rollup-plugin-visualizer'
 import ViteImages from 'vite-plugin-vue-images'
 import { viteMockServe } from 'vite-plugin-mock'
 import autoprefixer from 'autoprefixer'
-import postcssNormalize from 'postcss-normalize'
 import pkg from './package.json'
 
 const version = pkg.version
@@ -101,7 +100,6 @@ export default defineConfig({
     },
     postcss: {
       plugins: [
-        postcssNormalize(),
         autoprefixer()
       ]
     }
