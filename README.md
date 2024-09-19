@@ -59,11 +59,6 @@ pnpm run build:test //打包测试环境
 直接使用即可： <img :src="Logo" />
 测试
 
-### 校验 action 测试
-
-eslint 包，自动安装报错，暂存
-// "eslint-config-shts": "git+http://47.108.24.244:9980/frontend/ss/eslint-config-shts.git",
-
 ## 命名规范
 
 1. views目录下的文件名字以 kebab-case
@@ -71,7 +66,18 @@ eslint 包，自动安装报错，暂存
 3. 路由name以 kebab-case
 4. 组件名字以 PascalCase
 
-## 增加mock
+## 增加接口mock
 mock在根目录mock下面加文件即可
 需要使用时修改.env.development 
 VITE_APP_BASE_URL=/mock
+
+
+## localstorage使用
+```ts
+import { ls, ss } from '@/utils/storage'
+
+ls.get('key')
+ls.set('key', 'value')
+ls.remove('key')
+ls.clear()
+```

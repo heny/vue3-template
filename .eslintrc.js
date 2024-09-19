@@ -15,12 +15,6 @@ module.exports = {
     'vue/singleline-html-element-content-newline': 'off',
     'vue/html-closing-bracket-spacing': 'off',
     'vue/component-name-in-template-casing': ['error', 'PascalCase'],
-    'vue/max-attributes-per-line': ['error', {
-      'singleline': 3,      
-      'multiline': {
-        'max': 1
-      }
-    }],
     'vue/html-indent': ['error', 2],
     'vue/multi-word-component-names': 0,
   },
