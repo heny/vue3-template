@@ -1,0 +1,54 @@
+@forward 'element-plus/theme-chalk/src/common/var.scss' with (
+  $colors: (
+    'primary': (
+      //主色
+      'base': #00b09a
+    ),
+    'success': (
+      //成功色
+      'base': #1dc779
+    ),
+    'warning': (
+      //警告色
+      'base': #ffb302
+    ),
+    'danger': (
+      //危险色
+      'base': #e26237
+    ),
+    'error': (
+      //错误色
+      'base': #f6394d
+    )
+  ),
+  // 修改disabled下输入框背景色,diable下内容颜色
+  $disabled:
+    (
+      'bg-color': '#F8F8F8',
+      'text-color': '#262626'
+    ),
+  // 弹窗
+  $border-radius:
+    (
+      'small': 4px
+    ),
+  $fill-color: (
+    'light': '#F6F6F6'
+  ),
+  $border-color: (
+    'light': '#f0f0f0'
+  ),
+);
+
+// 按需导入不要加下面的东西
+// @use 'element-plus/theme-chalk/src/index.scss' as *;
+@import './variable.scss';
+
+// 需要全局引入的
+@import 'element-plus/theme-chalk/el-loading.css';
+@import 'element-plus/theme-chalk/el-message.css';
+
+// 有的未定义的，需要自己写的写在下面
+:root {
+  --el-dialog-padding-primary: 16px;
+}

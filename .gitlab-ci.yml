@@ -1,0 +1,226 @@
+variables:
+  DEPLOY_PATH_DEV: /var/www/business-sandbox
+  DEPLOY_PATH_TEST: /var/www/business
+  ENV_URL_DEV: "http://8.137.91.192:8182"
+  ENV_URL_TEST: "http://8.137.91.192:8181"
+  DINGTALK_ACCESS_TOKEN: "3e1f738139b3ae1eadf65980da2ab6362b87b9dba59f772e6f43209680af6c9e"
+  NOTIFICATION_SCRIPT: ./scripts/send_dingtalk_notification.sh
+  JOB_WRAPPER: ./scripts/job_wrapper.sh
+
+stages:
+  - setup
+  - build
+  - deploy
+  - rollback
+
+.notify_template: &notify
+  - |
+    echo "Debug: 在 notify 模板中"
+    if [ "$CI_COMMIT_REF_NAME" = "test" ]; then
+      ENVIRONMENT="测试环境"
+      ENV_URL=$ENV_URL_TEST
+    elif [ "$CI_COMMIT_REF_NAME" = "dev" ]; then
+      ENVIRONMENT="开发环境"
+      ENV_URL=$ENV_URL_DEV
+    else
+      ENVIRONMENT="未知环境"
+      echo "警告：未知分支 $CI_COMMIT_REF_NAME"
+    fi
+    echo "ENVIRONMENT=${ENVIRONMENT:-未设置}"
+    echo "NOTIFICATION_TYPE=${NOTIFICATION_TYPE:-未设置}"
+    echo "CI_COMMIT_REF_NAME=${CI_COMMIT_REF_NAME:-未设置}"
+    echo "CUSTOM_JOB_STATUS=${CUSTOM_JOB_STATUS:-未设置}"
+    echo "DEPLOY_PATH=${DEPLOY_PATH:-未设置}"
+    echo "ENV_URL=${ENV_URL:-未设置}"
+
+    if [ -n "$ENVIRONMENT" ] && [ -n "$NOTIFICATION_TYPE" ]; then
+      echo "执行通知脚本"
+      bash $NOTIFICATION_SCRIPT \
+        --environment "$ENVIRONMENT" \
+        --notification-type "$NOTIFICATION_TYPE" \
+        --job-status "${CUSTOM_JOB_STATUS:-$CI_JOB_STATUS}" \
+        --access-token "$DINGTALK_ACCESS_TOKEN" \
+        --error-message "$ERROR_MESSAGE" \
+        --env-url "$ENV_URL" \
+        --pipeline-id "$CI_PIPELINE_ID" \
+        --pipeline-url "$CI_PIPELINE_URL"
+    else
+      echo "警告：ENVIRONMENT 或 NOTIFICATION_TYPE 未设置，跳过通知"
+    fi
+
+.command_wrapper: &command_wrapper |
+  function run_command {
+    echo "执行命令: $@"
+    output=$(eval "$@" 2>&1)
+    local status=$?
+    if [ $status -ne 0 ]; then
+      echo "命令执行失败: $@"
+      echo "错误输出:"
+      echo "$output"
+      export NOTIFICATION_TYPE="命令执行失败"
+      export CUSTOM_JOB_STATUS="failed"
+      export ERROR_MESSAGE="命令 '$@' 执行失败。错误信息: $output"
+      *notify
+      exit $status
+    else
+      echo "命令执行成功，输出:"
+      echo "$output"
+    fi
+  }
+
+setup-job:
+  stage: setup
+  tags:
+    - business_system
+  variables:
+    NOTIFICATION_TYPE: "开始部署"
+  before_script:
+    - source /etc/profile.d/nvm.sh
+    - nvm use 18
+    - export CUSTOM_JOB_STATUS="start"
+    - *notify
+  script:
+    - *command_wrapper
+    - run_command node --version
+    - run_command pnpm --version
+    - run_command pnpm i
+  cache:
+    paths:
+      - node_modules/
+    key: ${CI_COMMIT_REF_SLUG}
+  rules:
+    - if: $CI_COMMIT_BRANCH == "test"
+      when: always
+    - if: $CI_COMMIT_BRANCH == "dev"
+      when: manual
+    - when: never
+
+build-job:
+  stage: build
+  tags:
+    - business_system
+  before_script:
+    - source /etc/profile.d/nvm.sh
+    - nvm use 18
+    - echo "当前构建的分支是：$CI_COMMIT_REF_NAME"
+    - *notify
+  script:
+    - *command_wrapper
+    - |
+      if [ "$CI_COMMIT_REF_NAME" = "test" ]; then
+        run_command pnpm run build:test
+      elif [ "$CI_COMMIT_REF_NAME" = "dev" ]; then
+        run_command pnpm run build:dev
+      else
+        echo "未知分支，使用默认构建命令"
+        run_command pnpm run build
+      fi
+  cache:
+    paths:
+      - node_modules/
+    key: ${CI_COMMIT_REF_SLUG}
+    policy: pull
+  artifacts:
+    paths:
+      - dist/
+  rules:
+    - if: $CI_COMMIT_BRANCH == "test"
+      when: always
+    - if: $CI_COMMIT_BRANCH == "dev"
+      when: manual
+    - when: never
+
+deploy-job:
+  stage: deploy
+  tags:
+    - business_system
+  script:
+    - *command_wrapper
+    - |
+      if [ "$CI_COMMIT_REF_NAME" = "test" ]; then
+        export DEPLOY_PATH=$DEPLOY_PATH_TEST
+      elif [ "$CI_COMMIT_REF_NAME" = "dev" ]; then
+        export DEPLOY_PATH=$DEPLOY_PATH_DEV
+      else
+        echo "未知分支，无法确定部署路径"
+        exit 1
+      fi
+    - echo "当前部署路径：$DEPLOY_PATH"
+    - run_command rm -rf $DEPLOY_PATH/dist
+    - run_command mv dist $DEPLOY_PATH/
+    - echo "部署完成"
+    - echo "备份当前版本"
+    - run_command mkdir -p $DEPLOY_PATH/dist_backup
+    - run_command cp -r $DEPLOY_PATH/dist $DEPLOY_PATH/dist_backup/dist_$(date +%Y%m%d_%H%M%S)
+  after_script:
+    - export NOTIFICATION_TYPE="部署完成"
+    - *notify
+  rules:
+    - if: $CI_COMMIT_BRANCH == "test"
+      when: always
+    - if: $CI_COMMIT_BRANCH == "dev"
+      when: manual
+    - when: never
+
+rollback-job:
+  stage: rollback
+  tags:
+    - business_system
+  variables:
+    NOTIFICATION_TYPE: "开始回滚"
+  before_script:
+    - export CUSTOM_JOB_STATUS="start"
+    - *notify
+  script:
+    - *command_wrapper
+    - echo "开始回滚操作"
+    - |
+      if [ "$CI_COMMIT_REF_NAME" = "test" ]; then
+        export DEPLOY_PATH=$DEPLOY_PATH_TEST
+      elif [ "$CI_COMMIT_REF_NAME" = "dev" ]; then
+        export DEPLOY_PATH=$DEPLOY_PATH_DEV
+      else
+        echo "未知分支，无法确定部署路径"
+        exit 1
+      fi
+      
+      echo "当前部署路径：$DEPLOY_PATH"
+      
+      # 检查备份目录是否存在
+      if [ ! -d "$DEPLOY_PATH/dist_backup" ]; then
+        echo "错误：备份目录不存在"
+        export NOTIFICATION_TYPE="回滚失败"
+        export CUSTOM_JOB_STATUS="failed"
+        export ERROR_MESSAGE="备份目录 $DEPLOY_PATH/dist_backup 不存在"
+        *notify
+        exit 1
+      fi
+      
+      # 获取最新的备份
+      LATEST_BACKUP=$(ls -td $DEPLOY_PATH/dist_backup/dist_* | head -n 1)
+      
+      if [ -n "$LATEST_BACKUP" ] && [ -d "$LATEST_BACKUP" ]; then
+        echo "找到最新备份：$LATEST_BACKUP"
+        
+        # 删除当前的 dist 目录
+        run_command rm -rf $DEPLOY_PATH/dist
+        
+        # 移动备份到 dist 目录
+        run_command mv $LATEST_BACKUP $DEPLOY_PATH/dist
+        
+        echo "回滚完成，使用备份：$LATEST_BACKUP"
+        export NOTIFICATION_TYPE="回滚成功"
+        export CUSTOM_JOB_STATUS="success"
+      else
+        echo "没有找到可用的备份，回滚失败"
+        export NOTIFICATION_TYPE="回滚失败"
+        export CUSTOM_JOB_STATUS="failed"
+        export ERROR_MESSAGE="没有找到可用的备份"
+        *notify
+        exit 1
+      fi
+    - *notify
+  when: manual
+  only:
+    - dev
+    - test
