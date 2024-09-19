@@ -1,4 +1,15 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
+# 保存未暂存的更改
+git stash -q --keep-index
+
+# 运行 lint-staged
 pnpm lint-staged
+RESULT=$?
+
+# 恢复未暂存的更改
+git stash pop -q
+
+# 如果 lint-staged 失败，则退出
+exit $RESULT
