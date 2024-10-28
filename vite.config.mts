@@ -131,6 +131,11 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
+        manualChunks: {
+          vendor: ['vue', 'vue-router', 'pinia'],
+          'element-plus': ['element-plus'],
+          axios: ['axios']
+        },
         chunkFileNames: `js/[name].${version}.js`,
         entryFileNames: `js/[name].${version}.js`,
         assetFileNames: `[ext]/[name].${version}.[ext]`
