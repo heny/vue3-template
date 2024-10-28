@@ -18,7 +18,6 @@
   "dependencies": {
     "@element-plus/icons-vue": "^1.1.4",
     "@types/echarts": "^4.9.22",
-    "@vitejs/plugin-legacy": "^5.2.0",
     "@vueuse/core": "^8.9.4",
     "axios": "^0.26.1",
     "dayjs": "^1.11.11",
@@ -48,7 +47,6 @@
     "autoprefixer": "^10.4.19",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^8.10.0",
-    "eslint-config-shts": "git+http://robot-deploy:bot123...@47.108.24.244:9980/frontend/ss/eslint-config-shts.git",
     "eslint-plugin-prettier": "^4.2.1",
     "husky": "^8.0.3",
     "lint-staged": "^15.2.10",

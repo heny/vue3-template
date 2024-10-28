@@ -1,12 +1,17 @@
 variables:
-  DEPLOY_PATH_DEV: /var/www/business-sandbox
-  DEPLOY_PATH_TEST: /var/www/business
-  ENV_URL_DEV: "http://8.137.91.192:8182"
-  ENV_URL_TEST: "http://8.137.91.192:8181"
-  DINGTALK_ACCESS_TOKEN: "3e1f738139b3ae1eadf65980da2ab6362b87b9dba59f772e6f43209680af6c9e"
+  # 使用前需要修改gitlab-runner的权限
+  # 1. sudo visudo
+  # 2. 在文件最后添加：gitlab-runner ALL=(ALL) NOPASSWD: /bin/chmod
+  DEPLOY_PATH_DEV: /var/www/data-governance-sandbox
+  DEPLOY_PATH_TEST: /var/www/data-governance
+  ENV_URL_DEV: "http://8.137.91.192:8282"
+  ENV_URL_TEST: "http://8.137.91.192:8281"
+  # 我的测试钉钉
+  DINGTALK_ACCESS_TOKEN: "adae99f0329ca5ecd06bb9be489dc907a9d1e4f16aee135f0f137811ebe2a7e8"
+  # DINGTALK_ACCESS_TOKEN: "3e1f738139b3ae1eadf65980da2ab6362b87b9dba59f772e6f43209680af6c9e"
   NOTIFICATION_SCRIPT: ./scripts/send_dingtalk_notification.sh
   JOB_WRAPPER: ./scripts/job_wrapper.sh
-
+  
 stages:
   - setup
   - build
@@ -29,7 +34,7 @@ stages:
     echo "ENVIRONMENT=${ENVIRONMENT:-未设置}"
     echo "NOTIFICATION_TYPE=${NOTIFICATION_TYPE:-未设置}"
     echo "CI_COMMIT_REF_NAME=${CI_COMMIT_REF_NAME:-未设置}"
-    echo "CUSTOM_JOB_STATUS=${CUSTOM_JOB_STATUS:-未设置}"
+    echo "CUSTOM_JOB_STATUS=${CUSTOM_JOB_STATUS:-$CI_JOB_STATUS}"
     echo "DEPLOY_PATH=${DEPLOY_PATH:-未设置}"
     echo "ENV_URL=${ENV_URL:-未设置}"
 
@@ -51,8 +56,12 @@ stages:
 .command_wrapper: &command_wrapper |
   function run_command {
     echo "执行命令: $@"
+    echo "当前工作目录: $(pwd)"
+    # 启用调试模式
+    # set -x
     output=$(eval "$@" 2>&1)
     local status=$?
+    echo "命令返回状态: $status"  # 添加调试信息
     if [ $status -ne 0 ]; then
       echo "命令执行失败: $@"
       echo "错误输出:"
@@ -71,7 +80,7 @@ stages:
 setup-job:
   stage: setup
   tags:
-    - business_system
+    - data-governance
   variables:
     NOTIFICATION_TYPE: "开始部署"
   before_script:
@@ -98,22 +107,27 @@ setup-job:
 build-job:
   stage: build
   tags:
-    - business_system
+    - data-governance
   before_script:
+    # 每次流水线的脚本不一样，需要重新切换环境
     - source /etc/profile.d/nvm.sh
     - nvm use 18
     - echo "当前构建的分支是：$CI_COMMIT_REF_NAME"
-    - *notify
   script:
+    # sudo test打包有问题，目前先使用dev打包，待mock取消后再使用test打包尝试
     - *command_wrapper
     - |
+      export NODE_OPTIONS="--max-old-space-size=4096"
+      run_command chmod -R 777 /var/www
+      run_command node --version
+      run_command pnpm --version
       if [ "$CI_COMMIT_REF_NAME" = "test" ]; then
-        run_command pnpm run build:test
+        run_command pnpm run build:dev | tee build.log
       elif [ "$CI_COMMIT_REF_NAME" = "dev" ]; then
-        run_command pnpm run build:dev
+        run_command pnpm run build:dev | tee build.log
       else
         echo "未知分支，使用默认构建命令"
-        run_command pnpm run build
+        run_command pnpm run build | tee build.log
       fi
   cache:
     paths:
@@ -123,17 +137,15 @@ build-job:
   artifacts:
     paths:
       - dist/
+  needs:
+    - setup-job
   rules:
-    - if: $CI_COMMIT_BRANCH == "test"
-      when: always
-    - if: $CI_COMMIT_BRANCH == "dev"
-      when: manual
-    - when: never
+    - when: on_success
 
 deploy-job:
   stage: deploy
   tags:
-    - business_system
+    - data-governance
   script:
     - *command_wrapper
     - |
@@ -146,6 +158,7 @@ deploy-job:
         exit 1
       fi
     - echo "当前部署路径：$DEPLOY_PATH"
+    - run_command sudo chmod -R 777 DEPLOY_PATH
     - run_command rm -rf $DEPLOY_PATH/dist
     - run_command mv dist $DEPLOY_PATH/
     - echo "部署完成"
@@ -155,17 +168,15 @@ deploy-job:
   after_script:
     - export NOTIFICATION_TYPE="部署完成"
     - *notify
+  needs:
+    - build-job
   rules:
-    - if: $CI_COMMIT_BRANCH == "test"
-      when: always
-    - if: $CI_COMMIT_BRANCH == "dev"
-      when: manual
-    - when: never
+    - when: on_success
 
 rollback-job:
   stage: rollback
   tags:
-    - business_system
+    - data-governance
   variables:
     NOTIFICATION_TYPE: "开始回滚"
   before_script:
@@ -185,7 +196,7 @@ rollback-job:
       fi
       
       echo "当前部署路径：$DEPLOY_PATH"
-      
+      run_command sudo chmod -R 777 DEPLOY_PATH
       # 检查备份目录是否存在
       if [ ! -d "$DEPLOY_PATH/dist_backup" ]; then
         echo "错误：备份目录不存在"
