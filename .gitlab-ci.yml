@@ -1,16 +1,12 @@
 variables:
-  # 使用前需要修改gitlab-runner的权限
-  # 1. sudo visudo
-  # 2. 在文件最后添加：gitlab-runner ALL=(ALL) NOPASSWD: /bin/chmod
+  # 注意路径需要使用root用户给目录加 chmod -R 777 目录，否则会部署失败
   DEPLOY_PATH_DEV: /var/www/data-governance-sandbox
   DEPLOY_PATH_TEST: /var/www/data-governance
   ENV_URL_DEV: "http://8.137.91.192:8282"
   ENV_URL_TEST: "http://8.137.91.192:8281"
   # 我的测试钉钉
-  DINGTALK_ACCESS_TOKEN: "adae99f0329ca5ecd06bb9be489dc907a9d1e4f16aee135f0f137811ebe2a7e8"
-  # DINGTALK_ACCESS_TOKEN: "3e1f738139b3ae1eadf65980da2ab6362b87b9dba59f772e6f43209680af6c9e"
+  DINGTALK_ACCESS_TOKEN: "3e1f738139b3ae1eadf65980da2ab6362b87b9dba59f772e6f43209680af6c9e"
   NOTIFICATION_SCRIPT: ./scripts/send_dingtalk_notification.sh
-  JOB_WRAPPER: ./scripts/job_wrapper.sh
   
 stages:
   - setup
@@ -118,16 +114,15 @@ build-job:
     - *command_wrapper
     - |
       export NODE_OPTIONS="--max-old-space-size=4096"
-      run_command chmod -R 777 /var/www
       run_command node --version
       run_command pnpm --version
       if [ "$CI_COMMIT_REF_NAME" = "test" ]; then
-        run_command pnpm run build:dev | tee build.log
+        run_command pnpm run build:dev
       elif [ "$CI_COMMIT_REF_NAME" = "dev" ]; then
-        run_command pnpm run build:dev | tee build.log
+        run_command pnpm run build:dev
       else
         echo "未知分支，使用默认构建命令"
-        run_command pnpm run build | tee build.log
+        run_command pnpm run build
       fi
   cache:
     paths:
@@ -140,7 +135,11 @@ build-job:
   needs:
     - setup-job
   rules:
-    - when: on_success
+    - if: $CI_COMMIT_BRANCH == "test"
+      when: on_success
+    - if: $CI_COMMIT_BRANCH == "dev"
+      when: on_success
+    - when: never
 
 deploy-job:
   stage: deploy
@@ -158,7 +157,7 @@ deploy-job:
         exit 1
       fi
     - echo "当前部署路径：$DEPLOY_PATH"
-    - run_command sudo chmod -R 777 DEPLOY_PATH
+    - run_command sudo chmod -R 777 $DEPLOY_PATH
     - run_command rm -rf $DEPLOY_PATH/dist
     - run_command mv dist $DEPLOY_PATH/
     - echo "部署完成"
@@ -171,7 +170,11 @@ deploy-job:
   needs:
     - build-job
   rules:
-    - when: on_success
+    - if: $CI_COMMIT_BRANCH == "test"
+      when: on_success
+    - if: $CI_COMMIT_BRANCH == "dev"
+      when: on_success
+    - when: never
 
 rollback-job:
   stage: rollback
@@ -196,7 +199,7 @@ rollback-job:
       fi
       
       echo "当前部署路径：$DEPLOY_PATH"
-      run_command sudo chmod -R 777 DEPLOY_PATH
+      run_command sudo chmod -R 777 $DEPLOY_PATH
       # 检查备份目录是否存在
       if [ ! -d "$DEPLOY_PATH/dist_backup" ]; then
         echo "错误：备份目录不存在"
