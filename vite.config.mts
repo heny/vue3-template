@@ -66,7 +66,7 @@ export default defineConfig({
       dts: resolve('./auto-imports/components.d.ts'),
       directoryAsNamespace: false,
       globalNamespaces: [],
-      include: [/.vue$/, /.vue?vue/],
+      include: [/\.vue$/, /\.vue\?vue/],
       exclude: [/[\/]node_modules[\/]/, /[\/].git[\/]/]
     }),
     UnpluginSvgComponent({
