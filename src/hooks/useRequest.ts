@@ -1,10 +1,8 @@
 import type { Method } from 'axios'
 import http from '@/api/axios'
 import type { ApiResponse } from '@/api/interface'
-import { deepToValue, handleUrl, isNil, typeOf } from '@/utils'
+import { handleUrl, isNil, processParams } from '@/utils'
 import { ElMessage } from 'element-plus'
-
-const isObject = (value: any) => typeOf(value) === 'Object'
 
 interface UseRequestOptions {
   method?: Method
@@ -133,46 +131,18 @@ const useRequest = (
     if (!url || url.trim() === '') {
       return Promise.reject(new Error('URL 不能为空'))
     }
-    /**
-     * json.parse是因为 ref([]) 会被判断为对象而不是数组
-     */
-    const newParams = deepToValue(params)
-    const queryParams = deepToValue(queryP)
-
+    
     return new Promise((resolve, reject) => {
-      /**
-       * case 1
-       * params 是对象 queryParams是对象
-       * case 2
-       * params 是对象 queryParams不是对象
-       * 比如带id的url, params传入id, queryParams传入其他类型参数
-       * case 3
-       * params 不是对象 queryParams是对象
-       * 比如带id的url, params传入其他类型参数, queryParams传入id
-       */
-      let data = null
-      let notObject = undefined
-
-      if (isObject(newParams) && isObject(queryParams)) {
-        data = { ...newParams, ...queryParams }
-      } else if (isObject(newParams)) {
-        data = newParams
-        notObject = queryParams
-      } else if (isObject(queryParams)) {
-        data = queryParams
-        notObject = newParams
-      } else {
-        // 两者都不是对象的情况
-        notObject = queryParams || newParams
-      }
+      // 对两次参数进行处理
+      const [data, notObject] = processParams(params, queryP)
 
       checkBeforeRequest(data).then(() => {
         loading.value = true
 
         const [newUrl, newData] = handleUrl(url, data)
         // 兼容对象如果空的就取非对象的值，这里是处理url通过对象传参改的，然后有的不是对象类型
-        const reqData = Object.keys(newData).length > 0 ? newData : undefined
-        sendRequest(newUrl, reqData || notObject, resolve, reject)
+        const reqData = isNil(newData) ? notObject : newData
+        sendRequest(newUrl, reqData, resolve, reject)
       })
     })
   }

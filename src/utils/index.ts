@@ -115,7 +115,7 @@ export function deepToValue<T extends Record<string, any>>(obj: T | Ref<T>): T {
 
 /**
  * 判断是否为空
- * 空字符串、空数组、undefined、null 都为空
+ * 空字符串、空数组、空对象、undefined、null 都为空
  */
 export function isNil(value: any): boolean {
   if(value === undefined || value === null || value === '') {
@@ -123,6 +123,10 @@ export function isNil(value: any): boolean {
   }
 
   if(Array.isArray(value) && value.length === 0) {
+    return true
+  }
+
+  if(typeOf(value) === 'Object' && Object.keys(value).length === 0) {
     return true
   }
 
@@ -194,4 +198,40 @@ export function handleUrl(url: string, queryParams: any) {
   })
 
   return [newUrl, newQueryParams]
+}
+
+/**
+ * 处理两个参数，返回[对象, 非对象]
+ * 第一项为两个对象合并，第二项为不是对象的值
+ * @returns 
+ */
+export function processParams(params: any, queryP: any): [Record<string, any> | null, any] {
+  if(isNil(params) && isNil(queryP)) {
+    return [{}, undefined]
+  }
+
+  // 预处理参数，处理 ref([]) 的情况
+  const newParams = deepToValue(params)
+  const queryParams = deepToValue(queryP)
+
+  const isObject = (value: any) => typeOf(value) === 'Object'
+
+  // 处理四种情况
+  switch (true) {
+    // case 1: 两者都是对象，合并对象
+    case isObject(newParams) && isObject(queryParams):
+      return [{ ...newParams, ...queryParams }, undefined]
+
+    // case 2: 只有 params 是对象
+    case isObject(newParams):
+      return [newParams, queryParams]
+
+    // case 3: 只有 queryParams 是对象
+    case isObject(queryParams):
+      return [queryParams, newParams]
+
+    // case 4: 两者都不是对象
+    default:
+      return [null, queryParams || newParams]
+  }
 }
