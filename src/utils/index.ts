@@ -1,5 +1,3 @@
-import type { FormInstance } from 'element-plus'
-
 /**
  * 默认值处理
  * @returns
@@ -113,4 +111,87 @@ export function deepToValue<T extends Record<string, any>>(obj: T | Ref<T>): T {
   }
 
   return result
+}
+
+/**
+ * 判断是否为空
+ * 空字符串、空数组、undefined、null 都为空
+ */
+export function isNil(value: any): boolean {
+  if(value === undefined || value === null || value === '') {
+    return true
+  }
+
+  if(Array.isArray(value) && value.length === 0) {
+    return true
+  }
+
+  return false
+}
+
+/**
+   * @name 处理url
+   * @description
+   *  1. 如果url中包含:id，params里面传入了id，则将id替换为params中的id，并删除params里面的id
+   *  2. 如果url里面包含:id，params也要传入id，则将url的:id替换成其他的名字，并params里面也传入该名字
+   * 
+   * case 1
+   * handleUrl('/list/:id')  => ['/list/:id', {}]
+   * handleUrl('/list/:id', { id: 1 })  => ['/list/1', {}]
+   * handleUrl('/list/:id')  => ['/list/:id', {}]
+   * handleUrl('/list/:id', { id: 1, name: '张三' })  => ['/list/1', { name: '张三' }]
+   * handleUrl('/list/:id?name={name}', { id: 1, name: '张三' })  => ['/list/1?name=张三', {}]
+   * handleUrl('/list/:id?name={name}', { id: 1, name: '' })  => ['/list/1?name=', {}]
+   */
+export function handleUrl(url: string, queryParams: any) {
+  if (!url.includes(':') && !url.includes('{')) return [url, queryParams]
+
+  const newQueryParams = { ...queryParams }
+  let newUrl = url.replace(/\/:(\w+)/g, (match, p1) => {
+    const value = newQueryParams[p1]
+
+    if (isNil(value)) {
+      return `/:${p1}`
+    }
+    delete newQueryParams[p1]
+
+    return `/${value}`
+  })
+
+  // 分离基础URL和查询字符串部分
+  const [baseUrl, queryString] = newUrl.split('?')
+
+  if (queryString) {
+    // 处理查询字符串部分
+    const processedQuery = queryString.replace(/\{(\w+)\}/g, (match, p1) => {
+      const value = newQueryParams[p1]
+      delete newQueryParams[p1]
+
+      if (isNil(value)) {
+        return ''
+      }
+
+      return `${encodeURIComponent(value)}`
+    })
+      .split('&')
+      .filter(param => param !== '')
+      .join('&')
+
+    newUrl = baseUrl + (processedQuery ? `?${processedQuery}` : '')
+  } 
+
+  // 处理基础URL中的占位符
+  newUrl = newUrl.replace(/\{(\w+)\}/g, (match, p1) => {
+    const value = newQueryParams[p1]
+
+    if (isNil(value)) {
+      return `{${p1}}`
+    }
+
+    delete newQueryParams[p1]
+
+    return encodeURIComponent(value)
+  })
+
+  return [newUrl, newQueryParams]
 }

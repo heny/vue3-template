@@ -1,11 +1,10 @@
 import type { Method } from 'axios'
 import http from '@/api/axios'
 import type { ApiResponse } from '@/api/interface'
+import { deepToValue, handleUrl, isNil, typeOf } from '@/utils'
 import { ElMessage } from 'element-plus'
-import { deepToValue } from '@/utils'
-import { isNil } from 'lodash-es'
 
-const isObject = (value: any): boolean => Object.prototype.toString.call(value) === '[object Object]'
+const isObject = (value: any) => typeOf(value) === 'Object'
 
 interface UseRequestOptions {
   method?: Method
@@ -82,7 +81,7 @@ const useRequest = (
     return new Promise((resolve, reject) => {
       if (requiredKeys.length > 0) {
         // 判断是否存在 并 String转换一下，避免 0 的情况
-        const hasRequiredKeys = requiredKeys.every(key => queryParams[key] !== 0 && queryParams[key] !== '' && !isNil(queryParams[key]))
+        const hasRequiredKeys = requiredKeys.every(key => !isNil(queryParams[key]))
   
         if (!hasRequiredKeys) {
           return reject(new Error('缺少必要参数'))
@@ -100,33 +99,6 @@ const useRequest = (
   
       resolve()
     })
-  }
-
-  /**
-   * @name 处理url
-   * @description
-   *  1. 如果url中包含:id，params里面传入了id，则将id替换为params中的id，并删除params里面的id
-   *  2. 如果url里面包含:id，params也要传入id，则将url的:id替换成其他的名字，并params里面也传入该名字
-   */
-  const handleUrl = (url: string, queryParams: any) => {
-    if (!url.includes(':') && !url.includes('{')) return [url, queryParams]
-
-    const newQueryParams = { ...queryParams }
-    let newUrl = url.replace(/\/:(\w+)/g, (match, p1) => {
-      const value = newQueryParams[p1]
-      delete newQueryParams[p1]
-
-      return `/${value}`
-    })
-
-    newUrl = newUrl.replace(/\{(\w+)\}/g, (match, p1) => {
-      const value = newQueryParams[p1]
-      delete newQueryParams[p1]
-
-      return encodeURIComponent(value)
-    })
-
-    return [newUrl, newQueryParams]
   }
 
   const sendRequest = (url, data, resolve, reject) => {
