@@ -1,7 +1,7 @@
 <template>
   <div class="shts-full shts-center shts-flex-column bg-white">
     <div class="img-box">
-      <img :src="i404" />
+      <img :src="i404" >
     </div>
     <div class="notfond-info">对不起,您访问的页面不存在。</div>
     <div class="back-btn" @click="handelBack">
@@ -11,6 +11,8 @@
 </template>
 
 <script lang="ts" setup>
+import i404 from '@/assets/img404/404.png'
+
 const router = useRouter()
 
 const handelBack = () => {

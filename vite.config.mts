@@ -8,7 +8,6 @@ import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import UnpluginSvgComponent from 'unplugin-svg-component/vite'
 import { visualizer } from 'rollup-plugin-visualizer'
-import ViteImages from 'vite-plugin-vue-images'
 import { viteMockServe } from 'vite-plugin-mock'
 import autoprefixer from 'autoprefixer'
 import pkg from './package.json'
@@ -82,10 +81,6 @@ export default defineConfig({
       domInsertionStrategy: 'dynamic',
       dtsDir: './auto-imports/',
       preserveColor: resolve('src/assets/icons')
-    }),
-    ViteImages({
-      dirs: ['src/assets/images', 'src/assets/img404'],
-      extensions: ['jpg', 'jpeg', 'png', 'svg', 'webp'] // 有效的图像扩展
     }),
   ],
   css: {

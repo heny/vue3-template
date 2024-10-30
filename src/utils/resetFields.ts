@@ -31,7 +31,6 @@ const isPathExcluded = (path: string, omitKeys: string[]) => {
 }
 
 /**
- * 
  * demo
  * const form = reactive({
  *  name: 'test',
@@ -58,14 +57,18 @@ const resetFormFields = (
   if (!form) return
 
   if (formRef) {
-    // 过滤掉被排除的字段
-    const filteredKeys = keys.filter(key => !omitKeys.includes(key))
+    // 如果有omitKeys，则获取所有字段并过滤掉被排除的字段
+    let fieldsToReset = keys
+    
+    if (omitKeys.length) {
+      fieldsToReset = Object.keys(form).filter(key => !omitKeys.includes(key))
+    }
 
     /**
      * 使用formRef重置一遍之后再重置一遍
      * formRef的重置主要能清除校验错误
      */
-    formRef.value?.resetFields(filteredKeys)
+    formRef.value?.resetFields(fieldsToReset)
   }
 
   const resetField = (field) => {

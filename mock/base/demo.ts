@@ -2,44 +2,28 @@
  * demo文件
  */
 import { MockMethod } from 'vite-plugin-mock'
-import { successRes } from '../utils'
+import { successRes, combineMockUrl } from '../utils'
+import Apis from '../../src/api/apis/demo'
+import Mock from 'mockjs'
 
-let roles = [
-  { id: 1, name: '超级管理员', isStatic: true },
-  { id: 2, name: '管理员', isStatic: true },
-  { id: 5, name: '患者', isStatic: false },
-  { id: 3, name: '医生', isStatic: false },
-  { id: 4, name: '护士', isStatic: false },
-  { id: 5, name: 'mock', isStatic: false },
-]
-
-let permissions = [
-  {
-    name: 'enterprise',
-    displayName: '超级管理员',
-    permissions: [
-      {
-        name: 'enterprise.basicSettings',
-        displayName: '基础设置',
-        permissions: [
-          { name: 'enterprise.basicSettings.create', displayName: '新增', isGranted: true, permissions: [] },
-          { name: 'enterprise.basicSettings.edit', displayName: '编辑', isGranted: true, permissions: [] },
-          { name: 'enterprise.basicSettings.disable', displayName: '停用', isGranted: false, permissions: [] },
-          { name: 'enterprise.basicSettings.delete', displayName: '删除', isGranted: true, permissions: [] }
-        ]
-      },
-    ]
-  },
-]
+let roles = Mock.mock({
+  'list|4-10': [{
+    'id|+1': 1,
+    date: '@date("yyyy-MM-dd")',
+    name: '@name',
+    address: '@county(true)'
+  }]
+}).list
 
 const data: MockMethod[] = [
   {
-    url: '/mock/role',
+    url: Apis.list,
     method: 'get',
     response: () => successRes(roles),
+    timeout: 1000
   },
   {
-    url: '/mock/role',
+    url: Apis.add,
     method: 'post',
     timeout: 2000,
     response: ({ body }) => {
@@ -50,7 +34,7 @@ const data: MockMethod[] = [
     }
   },
   {
-    url: '/mock/role/:id',
+    url: Apis.edit,
     method: 'put',
     response: ({ body, query }) => {
       const role = roles.find(r => r.id === Number(query.id))
@@ -65,7 +49,7 @@ const data: MockMethod[] = [
     }
   },
   {
-    url: '/mock/role/:id',
+    url: Apis.delete,
     method: 'delete',
     response: ({ query }) => {
       roles = roles.filter(r => r.id !== Number(query.id))
@@ -73,21 +57,6 @@ const data: MockMethod[] = [
       return successRes({ success: true })
     }
   },
-  {
-    url: '/mock/permission',
-    method: 'get',
-    response: () => successRes(permissions),
-  },
-  {
-    url: '/mock/permission',
-    method: 'put',
-    timeout: 1000,
-    response: ({ body }) => {
-      permissions = body.permissions
-
-      return successRes({ success: true })
-    }
-  }
 ]
 
-export default data
+export default combineMockUrl(data)
