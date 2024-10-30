@@ -1,11 +1,37 @@
 import type { FormInstance } from 'element-plus'
 
 interface ResetFormFieldsProps {
+  /**
+   * 指定哪些字段清除
+   */
   keys?: string[]
+  /**
+   * 指定哪些字段不清理
+   */
+  omitKeys?: string[]
+  /**
+   * 表单清除
+   * 
+   */
   formRef?: Ref<FormInstance>
 }
 
+const isPathExcluded = (path: string, omitKeys: string[]) => {
+  return omitKeys.some(omitKey => {
+    // 将当前路径和排除路径都转换为数组
+    const currentPath = path.split('.')
+    const omitPath = omitKey.split('.')
+    
+    // 如果当前路径长度小于排除路径，不可能匹配
+    if (currentPath.length < omitPath.length) return false
+    
+    // 检查路径前缀是否匹配
+    return omitPath.every((segment, index) => currentPath[index] === segment)
+  })
+}
+
 /**
+ * 
  * demo
  * const form = reactive({
  *  name: 'test',
@@ -27,12 +53,19 @@ interface ResetFormFieldsProps {
  */
 const resetFormFields = (
   form: Recordable,
-  { keys = [], formRef }: ResetFormFieldsProps = {}
+  { keys = [], omitKeys = [], formRef }: ResetFormFieldsProps = {}
 ) => {
   if (!form) return
 
   if (formRef) {
-    formRef.value?.resetFields(keys)
+    // 过滤掉被排除的字段
+    const filteredKeys = keys.filter(key => !omitKeys.includes(key))
+
+    /**
+     * 使用formRef重置一遍之后再重置一遍
+     * formRef的重置主要能清除校验错误
+     */
+    formRef.value?.resetFields(filteredKeys)
   }
 
   const resetField = (field) => {
@@ -74,17 +107,32 @@ const resetFormFields = (
     }
   }
 
+  const resetAllFields = (obj, parentPath = '') => {
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const currentPath = parentPath ? `${parentPath}.${key}` : key
+        
+        if (isPathExcluded(currentPath, omitKeys)) {
+          continue
+        }
+
+        if (typeof obj[key] === 'object' && obj[key] !== null && !(obj[key] instanceof Date)) {
+          resetAllFields(obj[key], currentPath)
+        } else {
+          obj[key] = resetField(obj[key])
+        }
+      }
+    }
+  }
+
   if (keys.length > 0) {
     for (const key of keys) {
+      if (isPathExcluded(key, omitKeys)) continue
       const path = key.split('.')
       resetNestedField(form, path)
     }
   } else {
-    for (const key in form) {
-      if (Object.prototype.hasOwnProperty.call(form, key)) {
-        form[key] = resetField(form[key])
-      }
-    }
+    resetAllFields(form)
   }
 }
 
