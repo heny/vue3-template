@@ -68,6 +68,10 @@ export const handleMsgConfirm = ({ fetch, params, onSuccess, onError, errKeepBox
   }
 }
 
+type TypeOf = 'String' | 'Number' | 'Boolean' | 'Array' | 'Object' | 'Function' | 'Date' | 'Null' | 'Undefined'
+
+export const typeOf = (value: any): TypeOf => Object.prototype.toString.call(value).slice(8, -1) as TypeOf
+
 /**
  * 深度解ref
  * 普通的toValue在处理普通对象时，还是需要.value
@@ -82,6 +86,11 @@ export function deepToValue<T extends Record<string, any>>(obj: T | Ref<T>): T {
     return unreffedObj
   }
 
+  // 处理Date类型
+  if (typeOf(unreffedObj) === 'Date') {
+    return unreffedObj as any
+  }
+
   if (Array.isArray(unreffedObj)) {
     return unreffedObj.map(deepToValue) as any
   }
@@ -92,35 +101,16 @@ export function deepToValue<T extends Record<string, any>>(obj: T | Ref<T>): T {
     const value = unreffedObj[key]
     
     if (typeof value === 'object' && value !== null) {
-      result[key] = deepToValue(value)
+      // 处理Date类型
+      if (typeOf(value) === 'Date') {
+        result[key] = value
+      } else {
+        result[key] = deepToValue(value)
+      }
     } else {
       result[key] = toValue(value)
     }
   }
 
   return result
-}
-
-/**
- * 重置表单项
- * 直接取字段重置，不会丢失响应
- */
-export const resetFormFields = (form: Recordable, formRef?: Ref<FormInstance>) => {
-  formRef?.value?.resetFields()
-
-  for (const key in form) {
-    if (typeof form[key] === 'string') {
-      form[key] = ''
-    } else if (typeof form[key] === 'number') {
-      form[key] = undefined
-    } else if (Array.isArray(form[key])) {
-      form[key] = []
-    } else if (typeof form[key] === 'boolean') {
-      form[key] = false
-    } else if (form[key] instanceof Date) {
-      form[key] = null
-    } else {
-      form[key] = null
-    }
-  }
 }
