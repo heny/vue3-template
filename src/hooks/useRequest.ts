@@ -71,28 +71,31 @@ const useRequest = (
   const isGet = method.toLowerCase() === 'get'
 
   // 请求前的校验
-  const checkBeforeRequest = (queryParams: any): Promise<void> => {
+  const checkBeforeRequest = (queryParams: any, reject): Promise<void> => {
     if(typeof queryParams !== 'object') {
       return Promise.resolve()
     }
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       if (requiredKeys.length > 0) {
         // 判断是否存在 并 String转换一下，避免 0 的情况
         const hasRequiredKeys = requiredKeys.every(key => !isNil(queryParams[key]))
   
         if (!hasRequiredKeys) {
-          return reject(new Error('缺少必要参数'))
+          reject('缺少必要参数')
+
+          return
         }
       }
-  
       const shoudPreventRepeat = preventRepeat ?? !isGet
-  
+
       if (shoudPreventRepeat && loading.value) {
         ElMessage.closeAll()
         ElMessage.warning('请求正在进行中，请勿重复调用')
   
-        return reject(new Error('请求正在进行中'))
+        reject('请求正在进行中')
+
+        return
       }
   
       resolve()
@@ -112,6 +115,7 @@ const useRequest = (
           result.value = res.data
           resolve(res.data)
         } else {
+          result.value = res
           resolve(res)
         }
         onSuccess?.(res)
@@ -136,7 +140,7 @@ const useRequest = (
       // 对两次参数进行处理
       const [data, notObject] = processParams(params, queryP)
 
-      checkBeforeRequest(data).then(() => {
+      checkBeforeRequest(data, reject).then(() => {
         loading.value = true
 
         const [newUrl, newData] = handleUrl(url, data)

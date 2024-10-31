@@ -5,7 +5,7 @@ variables:
   ENV_URL_DEV: "http://8.137.91.192:8282"
   ENV_URL_TEST: "http://8.137.91.192:8281"
   # 我的测试钉钉
-  DINGTALK_ACCESS_TOKEN: "3e1f738139b3ae1eadf65980da2ab6362b87b9dba59f772e6f43209680af6c9e"
+  DINGTALK_ACCESS_TOKEN: ""
   NOTIFICATION_SCRIPT: ./scripts/send_dingtalk_notification.sh
   
 stages:

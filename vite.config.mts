@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import fs from 'fs'
 import path from 'path'
 import { defineConfig } from 'vite'
@@ -139,5 +140,9 @@ export default defineConfig({
   },
   define: {
     __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
   }
 })
