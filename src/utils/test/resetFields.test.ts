@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from 'vitest'
-import resetFields from './resetFields'
+import resetFields from '../resetFields'
 
 describe('resetFields', () => {
   let form: any

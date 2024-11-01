@@ -1,4 +1,4 @@
-import type { Method } from 'axios'
+import type { Method, AxiosRequestConfig } from 'axios'
 import http from '@/api/axios'
 import type { ApiResponse } from '@/api/interface'
 import { handleUrl, isNil, processParams } from '@/utils'
@@ -10,6 +10,10 @@ interface UseRequestOptions {
    * 请求参数 Get和Data请求都用这一个
    */
   params?: any
+  /**
+   * 非get请求参数
+   */
+  query?: any
   /**
    * 必须要有的字段才能开始请求
    */
@@ -55,6 +59,7 @@ const useRequest = (
   {
     method = 'get',
     params = {},
+    query = {},
     requiredKeys = [],
     returnFull = false,
     defaultValue = null,
@@ -76,39 +81,46 @@ const useRequest = (
       return Promise.resolve()
     }
 
-    return new Promise((resolve) => {
-      if (requiredKeys.length > 0) {
-        // 判断是否存在 并 String转换一下，避免 0 的情况
-        const hasRequiredKeys = requiredKeys.every(key => !isNil(queryParams[key]))
+    if (requiredKeys.length > 0) {
+      // 判断是否存在 并 String转换一下，避免 0 的情况
+      const hasRequiredKeys = requiredKeys.every(key => !isNil(queryParams[key]))
   
-        if (!hasRequiredKeys) {
-          reject('缺少必要参数')
-
-          return
-        }
-      }
-      const shoudPreventRepeat = preventRepeat ?? !isGet
-
-      if (shoudPreventRepeat && loading.value) {
-        ElMessage.closeAll()
-        ElMessage.warning('请求正在进行中，请勿重复调用')
-  
-        reject('请求正在进行中')
+      if (!hasRequiredKeys) {
+        reject('缺少必要参数')
 
         return
       }
+    }
+    const shoudPreventRepeat = preventRepeat ?? !isGet
+
+    if (shoudPreventRepeat && loading.value) {
+      ElMessage.closeAll()
+      ElMessage.warning('请求正在进行中，请勿重复调用')
   
-      resolve()
-    })
+      reject('请求正在进行中')
+
+      return
+    }
+  
+    return Promise.resolve()
   }
 
   const sendRequest = (url, data, resolve, reject) => {
-    http({
-      url,
-      method: method as Method,
-      params: isGet ? data : {},
-      data: isGet ? {} : data
-    })
+    const options: AxiosRequestConfig = { 
+      url, 
+      method 
+    }
+
+    if(!isNil(data) || !isNil(query)) {
+      if(isGet) {
+        options.params = { ...query, ...data }
+      } else {
+        options.data = data
+        if (!isNil(query)) options.params = query
+      }
+    }
+
+    http(options)
     // @ts-ignore
       .then((res: ApiResponse) => {
         if (isGet && !returnFull) {

@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest'
 import { ref } from 'vue'
-import { typeOf, deepToValue, isNil, processParams, handleUrl } from '.'
+import { typeOf, deepToValue, isNil, processParams, handleUrl } from '..'
 
 describe('utils工具函数测试', () => {
   test('typeOf: 判断数据类型', () => {

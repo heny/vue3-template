@@ -10,6 +10,7 @@ variables:
   
 stages:
   - setup
+  - test
   - build
   - deploy
   - rollback
@@ -100,6 +101,32 @@ setup-job:
       when: manual
     - when: never
 
+test-job:
+  stage: test
+  tags:
+    - data-governance
+  before_script:
+    - source /etc/profile.d/nvm.sh
+    - nvm use 18
+  script:
+    - *command_wrapper
+    - run_command node --version
+    - run_command pnpm --version
+    - run_command pnpm test
+  cache:
+    paths:
+      - node_modules/
+    key: ${CI_COMMIT_REF_SLUG}
+    policy: pull
+  needs:
+    - setup-job
+  rules:
+    - if: $CI_COMMIT_BRANCH == "test"
+      when: on_success
+    - if: $CI_COMMIT_BRANCH == "dev"
+      when: on_success
+    - when: never
+
 build-job:
   stage: build
   tags:
@@ -133,7 +160,7 @@ build-job:
     paths:
       - dist/
   needs:
-    - setup-job
+    - test-job
   rules:
     - if: $CI_COMMIT_BRANCH == "test"
       when: on_success
