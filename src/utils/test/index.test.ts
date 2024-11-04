@@ -1,6 +1,7 @@
 import { describe, test, expect } from 'vitest'
 import { ref } from 'vue'
 import { typeOf, deepToValue, isNil, processParams, handleUrl } from '..'
+import { isValidDate } from '../formatDate'
 
 describe('utils工具函数测试', () => {
   test('typeOf: 判断数据类型', () => {
@@ -15,12 +16,25 @@ describe('utils工具函数测试', () => {
     expect(typeOf(undefined)).toBe('Undefined')
   })
 
+  test('isValidDate: 判断字符串是否为有效的日期时间格式', () => {
+    expect(isValidDate('2024-03-20')).toBe(true)
+    expect(isValidDate('2024-03-20 12:00:00')).toBe(true)
+    expect(isValidDate('2024-11-01T16:59:52.407')).toBe(true)
+    expect(isValidDate('2024-11-01T00:00:00')).toBe(true)
+    expect(isValidDate('2024-11-01T00:00:00.000Z')).toBe(true)
+
+    expect(isValidDate('1233')).toBe(false)
+    expect(isValidDate('哈哈哈哈')).toBe(false)
+    expect(isValidDate('2024-11-01fdsafdsafd')).toBe(false)
+  })
+
   test('isNil: 判断空对象', () => {
     expect(isNil('')).toBe(true)
     expect(isNil([])).toBe(true)
     expect(isNil({})).toBe(true)
     expect(isNil(undefined)).toBe(true)
     expect(isNil(null)).toBe(true)
+    
     expect(isNil(0)).toBe(false)
     expect(isNil('12')).toBe(false)
   })

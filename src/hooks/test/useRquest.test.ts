@@ -1,13 +1,14 @@
 /* eslint-disable max-lines-per-function */
 /* eslint-disable vue/one-component-per-file */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
-import { defineComponent, nextTick } from 'vue'
+import { flushPromises } from '@vue/test-utils'
+import { nextTick, ref } from 'vue'
 import useRequest from '../useRequest'
 import http from '@/api/axios'
 import { ElMessage } from 'element-plus'
+import { withSetup } from './test-utils'
 
-const defaultData = { 
+const defaultData = {
   success: true,
   status: 200,
   statusText: 'OK',
@@ -39,22 +40,13 @@ describe('useRequest', () => {
       ...defaultData,
       data: { test: 'success' },
     }
-    
+
     const mockHttp = vi.mocked(http)
     mockHttp.mockImplementationOnce(() => Promise.resolve(mockData))
-    
-    const TestComponent = defineComponent({
-      setup() {
-        const { data, loading, refetch } = useRequest('/api/test', {
-          defaultValue: {}
-        })
 
-        return { data, loading, refetch }
-      },
-      template: '<div />'
-    })
-
-    const wrapper = mount(TestComponent)
+    const [result, app] = withSetup(() => useRequest('/api/test', {
+      defaultValue: {}
+    }))
 
     await flushPromises()
 
@@ -62,40 +54,32 @@ describe('useRequest', () => {
       url: '/api/test',
       method: 'get',
     })
-    
-    expect(wrapper.vm.data).toEqual(mockData.data)
-    expect(wrapper.vm.loading).toBe(false)
-    
-    wrapper.unmount()
+
+    expect(result.data.value).toEqual(mockData.data)
+    expect(result.loading.value).toBe(false)
+
+    app.unmount()
   })
 
   it('基本POST请求', async () => {
-    const TestComponent = defineComponent({
-      setup() {
-        const { loading, refetch } = useRequest('/api/test/:id', {
-          method: 'post',
-          params: { id: 1, test: 'success' },
-        })
-
-        return { loading, refetch }
-      },
-      template: '<div />'
-    })
-
-    // 挂载组件
-    const wrapper = mount(TestComponent)
+    const [result, app] = withSetup(() => 
+      useRequest('/api/test/:id', {
+        method: 'post',
+        params: { id: 1, test: 'success' },
+      })
+    )
 
     // 检查初始的loading状态
-    expect(wrapper.vm.loading).toBe(false)
+    expect(result.loading.value).toBe(false)
 
     // 发起请求，并校验
-    expect(wrapper.vm.refetch()).resolves.toEqual(defaultData)
+    expect(result.refetch()).resolves.toEqual(defaultData)
 
     // 等待vue更新
     await nextTick()
 
     // 检查loading请求中状态
-    expect(wrapper.vm.loading).toBe(true)
+    expect(result.loading.value).toBe(true)
 
     // 检查http请求的参数
     expect(http).toHaveBeenCalledWith({
@@ -103,140 +87,105 @@ describe('useRequest', () => {
       method: 'post',
       data: { test: 'success' },
     })
-    
+
     // 等待请求完成
     await flushPromises()
 
     // 检查loading请求完成状态
-    expect(wrapper.vm.loading).toBe(false)
+    expect(result.loading.value).toBe(false)
 
     // 卸载组件，完成测试
-    wrapper.unmount()
+    app.unmount()
   })
 
-  
-  it('重复POST请求校验', async () => {    
-    const TestComponent = defineComponent({
-      setup() {
-        const { refetch, loading } = useRequest('/api/test3', {
-          method: 'post',
-          immediate: false
-        })
 
-        return { refetch, loading }
-      },
-      template: '<div />'
-    })
-    
-    const wrapper = mount(TestComponent)
-    
-    expect(wrapper.vm.loading).toBe(false)
-    
-    wrapper.vm.refetch()
+  it('重复POST请求校验', async () => {
+    const [result, app] = withSetup(() => 
+      useRequest('/api/test3', {
+        method: 'post',
+        immediate: false
+      })
+    )
+
+    expect(result.loading.value).toBe(false)
+
+    result.refetch()
 
     await nextTick()
-    
-    expect(wrapper.vm.loading).toBe(true)
-    
+
+    expect(result.loading.value).toBe(true)
+
     // 检查重复请求错误
-    await expect(wrapper.vm.refetch()).rejects.toThrow('请求正在进行中')
+    await expect(result.refetch()).rejects.toThrow('请求正在进行中')
     // 检查错误信息
     expect(ElMessage.warning).toHaveBeenCalledWith('请求正在进行中，请勿重复调用')
-    
-    wrapper.unmount()
+
+    app.unmount()
   }, 3000)
 
   it('必填参数检查', async () => {
-    const TestComponent = defineComponent({
-      setup() {
-        const { refetch } = useRequest('/api/test2', {
-          requiredKeys: ['id'],
-          immediate: false
-        })
+    const [result, app] = withSetup(() =>
+      useRequest('/api/test2', {
+        requiredKeys: ['id'],
+        immediate: false
+      })
+    )
 
-        return { refetch }
-      },
-      template: '<div />'
-    })
-
-    const wrapper = mount(TestComponent)
-    
     // 使用 expect().rejects 来测试异步错误
-    await expect(wrapper.vm.refetch()).rejects.toThrow('缺少必要参数')
-    
-    wrapper.unmount()
+    await expect(result.refetch()).rejects.toThrow('缺少必要参数')
+
+    app.unmount()
   }, 3000)
 
 })
 
 describe('useRequest: 传参方式校验', () => {
   it('带id的路径', async () => {
-    const TestComponent = defineComponent({
-      setup() {
-        const { refetch } = useRequest('/api/test2/:id', {
-          method: 'post',
-          params: { id: 1 }
-        })
+    const [result, app] = withSetup(() => 
+      useRequest('/api/test2/:id', {
+        method: 'post',
+        params: { id: 1 }
+      })
+    )
 
-        return { refetch }
-      },
-      template: '<div />'
-    })
-
-    const wrapper = mount(TestComponent)
-
-    await wrapper.vm.refetch()
+    await result.refetch()
 
     expect(http).toHaveBeenCalledWith({
       url: '/api/test2/1',
       method: 'post',
     })
 
-    wrapper.unmount()
+    app.unmount()
   })
 
   it('带id，query的路径方式一', async () => {
-    const TestComponent = defineComponent({
-      setup() {
-        const { refetch } = useRequest('/api/test2/:id?name={name}&age={age}', {
-          method: 'post',
-          params: { id: 1, name: 'test', age: undefined }
-        })
+    const [result, app] = withSetup(() => 
+      useRequest('/api/test2/:id?name={name}&age={age}', {
+        method: 'post',
+        params: { id: 1, name: 'test', age: undefined }
+      })
+    )
 
-        return { refetch }
-      },
-      template: '<div />'
-    })
-
-    const wrapper = mount(TestComponent)
-
-    await wrapper.vm.refetch()
+    await result.refetch()
 
     expect(http).toHaveBeenCalledWith({
       url: '/api/test2/1?name=test&age=',
       method: 'post',
     })
 
-    wrapper.unmount()
+    app.unmount()
   })
 
   it('带id，query的路径方式二', async () => {
-    const TestComponent = defineComponent({
-      setup() {
-        const { refetch } = useRequest('/api/test/query2/:id', {
-          method: 'post',
-          params: { id: 1 },
-          query: { name: 'test', age: undefined }
-        })
+    const [result, app] = withSetup(() => 
+      useRequest('/api/test/query2/:id', {
+        method: 'post',
+        params: { id: 1 },
+        query: { name: 'test', age: undefined }
+      })
+    )
 
-        return { refetch }
-      },
-      template: '<div />'
-    })
-
-    const wrapper = mount(TestComponent)
-
-    await wrapper.vm.refetch()
+    await result.refetch()
 
     expect(http).toHaveBeenCalledWith({
       url: '/api/test/query2/1',
@@ -244,49 +193,35 @@ describe('useRequest: 传参方式校验', () => {
       params: { name: 'test', age: undefined }
     })
 
-    wrapper.unmount()
+    app.unmount()
   })
 
   it('post传入数组', async () => {
-    const TestComponent = defineComponent({
-      setup() {
-        const { refetch } = useRequest('/api/test/array/delete', {
-          method: 'delete'
-        })
+    const [result, app] = withSetup(() => 
+      useRequest('/api/test/array/delete', {
+        method: 'delete'
+      })
+    )
 
-        return { refetch }
-      },
-      template: '<div />'
-    })
-
-    const wrapper = mount(TestComponent)
-
-    await wrapper.vm.refetch([1,2,3])
+    await result.refetch([1, 2, 3])
 
     expect(http).toHaveBeenCalledWith({
       url: '/api/test/array/delete',
       method: 'delete',
-      data: [1,2,3]
+      data: [1, 2, 3]
     })
 
-    wrapper.unmount()
+    app.unmount()
   })
 
   it('post传入字符串', async () => {
-    const TestComponent = defineComponent({
-      setup() {
-        const { refetch } = useRequest('/api/test/string', {
-          method: 'post'
-        })
+    const [result, app] = withSetup(() => 
+      useRequest('/api/test/string', {
+        method: 'post'
+      })
+    )
 
-        return { refetch }
-      },
-      template: '<div />'
-    })
-
-    const wrapper = mount(TestComponent)
-
-    await wrapper.vm.refetch('123')
+    await result.refetch('123')
 
     expect(http).toHaveBeenCalledWith({
       url: '/api/test/string',
@@ -294,28 +229,26 @@ describe('useRequest: 传参方式校验', () => {
       data: '123'
     })
 
-    wrapper.unmount()
+    app.unmount()
   })
 
   it('响应式传参', async () => {
-    const TestComponent = defineComponent({
-      setup() {
-        const id = ref(123)
-        const { refetch } = useRequest('/api/test/string', {
-          method: 'post',
-          params: { id }
-        })
+    const [result, app] = withSetup(() => {
+      const id = ref(123)
+      const request = useRequest('/api/test/string', {
+        method: 'post',
+        params: { id }
+      })
 
-        return { refetch, id }
-      },
-      template: '<div />'
+      return {
+        ...request,
+        id
+      }
     })
 
-    const wrapper = mount(TestComponent)
+    result.id.value = 456
 
-    wrapper.vm.id = 456
-
-    await wrapper.vm.refetch()
+    await result.refetch()
 
     expect(http).toHaveBeenCalledWith({
       url: '/api/test/string',
@@ -325,6 +258,6 @@ describe('useRequest: 传参方式校验', () => {
       }
     })
 
-    wrapper.unmount()
+    app.unmount()
   })
 })
