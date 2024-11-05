@@ -2,6 +2,7 @@ import type { Method, AxiosRequestConfig } from 'axios'
 import http from '@/api/axios'
 import type { ApiResponse } from '@/api/interface'
 import { handleUrl, isNil, processParams } from '@/utils'
+import { handleParamsDate } from '@/utils/formatDate'
 import { ElMessage } from 'element-plus'
 
 interface UseRequestOptions {
@@ -55,7 +56,7 @@ interface UseRequestOptions {
 
 // eslint-disable-next-line max-lines-per-function
 const useRequest = (
-  url: string,
+  url: string | Ref<string>,
   {
     method = 'get',
     params = {},
@@ -115,8 +116,8 @@ const useRequest = (
       if(isGet) {
         options.params = { ...query, ...data }
       } else {
-        options.data = data
-        if (!isNil(query)) options.params = query
+        options.data = handleParamsDate(data)
+        if (!isNil(query)) options.params = handleParamsDate(query)
       }
     }
 
@@ -144,7 +145,9 @@ const useRequest = (
   }
 
   const fetchData = (queryP = {}): Promise<ApiResponse> => {
-    if (!url || url.trim() === '') {
+    const urlValue = unref(url)
+
+    if (!urlValue || urlValue.trim() === '') {
       return Promise.reject(new Error('URL 不能为空'))
     }
     
@@ -155,7 +158,7 @@ const useRequest = (
       checkBeforeRequest(data, reject).then(() => {
         loading.value = true
 
-        const [newUrl, newData] = handleUrl(url, data)
+        const [newUrl, newData] = handleUrl(urlValue, data)
         // 兼容对象如果空的就取非对象的值，这里是处理url通过对象传参改的，然后有的不是对象类型
         const reqData = isNil(newData) ? notObject : newData
         sendRequest(newUrl, reqData, resolve, reject)

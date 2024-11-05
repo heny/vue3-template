@@ -140,6 +140,32 @@ describe('useRequest', () => {
 })
 
 describe('useRequest: 传参方式校验', () => {
+
+  it('url动态路径', async () => {
+    const [result, app] = withSetup(() => {
+      const url = ref('/api/test')
+      const request = useRequest(url, {
+        method: 'post',
+      })
+
+      return {
+        ...request,
+        url
+      }
+    })
+
+    result.url.value = '/api/test/dynamic/2'
+
+    await result.refetch()
+
+    expect(http).toHaveBeenCalledWith({
+      url: '/api/test/dynamic/2',
+      method: 'post',
+    })
+
+    app.unmount()
+  })
+  
   it('带id的路径', async () => {
     const [result, app] = withSetup(() => 
       useRequest('/api/test2/:id', {
