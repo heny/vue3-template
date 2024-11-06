@@ -10,6 +10,7 @@ import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import UnpluginSvgComponent from 'unplugin-svg-component/vite'
 import { visualizer } from 'rollup-plugin-visualizer'
 import { viteMockServe } from 'vite-plugin-mock'
+import tailwindcss from 'tailwindcss'
 import autoprefixer from 'autoprefixer'
 import pkg from './package.json'
 
@@ -92,7 +93,8 @@ export default defineConfig({
     },
     postcss: {
       plugins: [
-        autoprefixer()
+        autoprefixer(),
+        tailwindcss()
       ]
     }
   },

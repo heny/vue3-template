@@ -1,6 +1,6 @@
 <template>
   <div class="home">
-    主页
+    <span class="text-2xl font-bold mr-[20px]">主页</span>
     <el-button type="primary" @click="handleSearch">查询</el-button>
     <el-table v-loading="loading" :data="data" style="width: 100%">
       <el-table-column prop="date" label="Date" width="180" />
