@@ -3,6 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import VueMacros from 'unplugin-vue-macros/vite'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
@@ -32,8 +33,17 @@ export default defineConfig({
     }
   },
   plugins: [
-    vue(),
+    // vue(),
     vueJsx(),
+    /**
+     * 在使用ref时不用.value直接修改值
+     * https://vue-macros.dev/zh-CN/features/reactivity-transform.html
+     */
+    VueMacros({
+      plugins: {
+        vue: vue(),
+      },
+    }),
     visualizer({ open: true }),
     viteMockServe({
       mockPath: 'mock',

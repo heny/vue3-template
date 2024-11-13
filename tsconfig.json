@@ -1,4 +1,7 @@
 {
+  "vueCompilerOptions": {
+    "plugins": ["unplugin-vue-macros/volar"]
+  },
   "compilerOptions": {
     "baseUrl": "./",
     "paths": {
@@ -7,7 +10,8 @@
     "module": "ESNext",
     "moduleResolution": "Node",
     "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "types": ["unplugin-vue-macros/macros-global"]
   },
   "include": [
     "src/**/*.ts",
@@ -18,7 +22,7 @@
     "auto-imports/components.d.ts",
     "auto-imports/svg-component.d.ts",
     "auto-imports/svg-component-global.d.ts",
-    "Element-plus.d.ts"
+    "Element-plus.d.ts",
   ],
   "exclude": ["node_modules"],
   "noUnusedLocals": false,

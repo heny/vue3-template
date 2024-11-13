@@ -130,6 +130,15 @@ module.exports = {
   },
   globals: {
     Recordable: 'readonly',
-    HttpResponse: 'readonly'
+    HttpResponse: 'readonly',
+    // vue reactivity transform
+    $: 'readonly',
+    $$: 'readonly',
+    $ref: 'readonly',
+    $shallowRef: 'readonly',
+    $computed: 'readonly',
+    $customRef: 'readonly',
+    $toRef: 'readonly',
+    $defineProps: 'readonly',
   }
 }

@@ -8,10 +8,22 @@ const NotFound = () => import('@/views/page404.vue')
 
 const Layout = () => import('@/views/layout/index.vue')
 
+const demoRoutes = [
+  {
+    path: '/reactive',
+    name: 'reactive',
+    component: () => import('@/views/demo/reactive/index.vue'),
+    meta: {
+      title: '响应式测试'
+    }
+  }
+]
+
 /**
  * 路由命名使用kebab-case格式
  */
 export const defaultRouter: Routes[] = [
+  ...demoRoutes,
   {
     path: '/',
     component: Layout,

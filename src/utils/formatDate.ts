@@ -1,5 +1,6 @@
 import dayjs from 'dayjs'
 import { typeOf } from './index'
+import { cloneDeep } from 'lodash-es'
 
 /**
  * 判断字符串是否为有效的日期时间格式
@@ -56,7 +57,9 @@ interface HandleParamsDateOptions {
  * 传给后端做处理，后端取的时间与前端不同，如果不做处理的话，后端取的时间会少8小时
  * @returns 
  */
-export function handleParamsDate(params: any, options: HandleParamsDateOptions = {}) {
+export function handleParamsDate(data: any, options: HandleParamsDateOptions = {}) {
+  const params = cloneDeep(data)
+  
   const {
     format = 'YYYY-MM-DD HH:mm:ss',
     shoudValidString = false,

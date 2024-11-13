@@ -1,6 +1,3 @@
-# 公共模板
-使用时拉取此公共模板，之后更改git远程地址
-
 ## Install
 
 node: 18.18.1
@@ -37,11 +34,6 @@ pnpm: 9.7.1
 
 eg: git commit -m "fix: 修复 xxx 功能"
 
-### node 版本 - 跟=随启动命令切换
-
-看板系统 node 版本 - 16.20.2
-业务系统 node 版本 - 18.18.1 执行 pnpm nvm 切换 node 版本
-
 ### 命令
 
 pnpm nvm // 切换 node 版本
@@ -50,21 +42,52 @@ pnpm run dev // 启动项目
 pnpm run build:dev //打包开发环境
 pnpm run build:test //打包测试环境
 
-### 图片
-
-图片文件位置： src/assets/images
-
-注意无需再写： import logo from '@/assets/images/logo.png'
-
-直接使用即可： <img :src="Logo" />
-测试
-
 ## 命名规范
 
 1. views目录下的文件名字以 kebab-case
 2. 路由path以 kebab-case
 3. 路由name以 kebab-case
 4. 组件名字以 PascalCase
+
+## 加入reactivity transform
+> 使用时不再需要.value
+
+```ts
+const count = $ref(1)
+count++
+console.log(count) // 2
+
+// 解构props
+const {
+    msg,
+    // 默认值正常可用
+    count = 1,
+    // 解构时命别名也可用
+    foo: bar
+} = $defineProps<{
+    msg: string
+    count?: number
+    foo?: string
+}>()
+```
+
+### 与普通的互相转换
+```ts
+function useDemo() {
+  const num = $ref(1)
+  // 使用 $$ 作为响应式返回
+  return $$({ num })
+}
+
+const count = $ref(1)
+// 使用 $$ 作为响应式传递给useDemo
+useDemo($$(count))
+    
+// 使用 $ 将原始的ref转换为$ref
+const { num } = $(useDemo())
+// 对于defineModel也适用
+const input = $(defineModel<string>('input'))
+```
 
 ## 增加接口mock
 mock在根目录mock下面加文件即可
