@@ -98,6 +98,36 @@ describe('useRequest', () => {
     app.unmount()
   })
 
+  it('when条件控制请求', async () => {
+    const [result, app] = withSetup(() => {
+      const canRequest = ref(false)
+      const request = useRequest('/api/test', {
+        method: 'get',
+        when: canRequest
+      })
+
+      return {
+        ...request,
+        canRequest
+      }
+    })
+
+    await nextTick()
+    // when为false时,不会自动发起请求
+    expect(http).not.toHaveBeenCalled()
+
+    // 修改when为true,会自动发起请求
+    result.canRequest.value = true
+    await nextTick()
+
+    // 验证请求已发送
+    expect(http).toHaveBeenCalledWith({
+      url: '/api/test',
+      method: 'get'
+    })
+
+    app.unmount()
+  })
 
   it('重复POST请求校验', async () => {
     const [result, app] = withSetup(() => 
@@ -163,10 +193,7 @@ describe('useRequest: 传参方式校验', () => {
         method: 'post',
       })
 
-      return {
-        ...request,
-        url
-      }
+      return { ...request, url }
     })
 
     result.url.value = '/api/test/dynamic/2'

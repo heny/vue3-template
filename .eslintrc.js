@@ -27,6 +27,8 @@ module.exports = {
   },
   plugins: ['@typescript-eslint', 'prettier'],
   rules: {
+    'no-redeclare': 'off',
+    '@typescript-eslint/no-redeclare': 'error',
     'vue/no-unused-vars': 'warn',
     'vue/singleline-html-element-content-newline': 'off',
     'vue/html-closing-bracket-spacing': 'off',
@@ -80,7 +82,6 @@ module.exports = {
     'no-func-assign': 2,
     'no-undef': 2,
     'key-spacing': [2, { beforeColon: false, afterColon: true }],
-    'no-redeclare': 2,
     eqeqeq: [2, 'allow-null'],
     quotes: [1, 'single', 'avoid-escape'],
     semi: [2, 'never'],

@@ -2,7 +2,6 @@ import type { Method, AxiosRequestConfig } from 'axios'
 import http from '@/api/axios'
 import type { ApiResponse } from '@/api/interface'
 import { handleUrl, isNil, processParams } from '@/utils'
-import { handleParamsDate } from '@/utils/formatDate'
 import { ElMessage } from 'element-plus'
 
 interface UseRequestOptions {
@@ -28,6 +27,11 @@ interface UseRequestOptions {
    */
   defaultValue?: any
   /**
+   * 是否在条件为真时立即发起请求，当有when时，不再自动发起请求了
+   * when与immediate互斥
+   */
+  when?: Ref<boolean>
+  /**
    * 是否立即执行, 默认get会立即执行，post不会立即执行
    */
   immediate?: boolean
@@ -39,7 +43,6 @@ interface UseRequestOptions {
    * 依赖项
    */
   deps?: any[]
-
   /**
    * 请求结束回调
    */
@@ -66,6 +69,7 @@ const useRequest = (
     defaultValue = null,
     immediate = true,
     preventRepeat,
+    when,
     onFinally,
     onSuccess,
     onError,
@@ -116,8 +120,8 @@ const useRequest = (
       if(isGet) {
         options.params = { ...query, ...data }
       } else {
-        options.data = handleParamsDate(data)
-        if (!isNil(query)) options.params = handleParamsDate(query)
+        options.data = data
+        if (!isNil(query)) options.params = query
       }
     }
 
@@ -144,14 +148,14 @@ const useRequest = (
       })
   }
 
-  const fetchData = (queryP = {}): Promise<ApiResponse> => {
+  const fetchData = <T = any>(queryP = {}) => {
     const urlValue = unref(url)
 
     if (!urlValue || urlValue.trim() === '') {
       return Promise.reject(new Error('URL 不能为空'))
     }
     
-    return new Promise((resolve, reject) => {
+    return new Promise<T>((resolve, reject) => {
       // 对两次参数进行处理
       const [data, notObject] = processParams(params, queryP)
 
@@ -167,19 +171,21 @@ const useRequest = (
   }
 
   onMounted(() => {
-    if (immediate && isGet) {
+    if (immediate && isGet && typeof when === 'undefined') {
       fetchData()
     }
   })
 
+  if(when) {
+    watch(when, (val) => {
+      if (val) fetchData()
+    })
+  }
+
   if (deps) {
     watch(deps, () => {
-      if (immediate && isGet) {
-        fetchData()
-      }
-    }, {
-      deep: true
-    })
+      if (immediate && isGet) fetchData()
+    }, { deep: true })
   }
 
   return {

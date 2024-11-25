@@ -11,7 +11,10 @@
     "moduleResolution": "Node",
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["unplugin-vue-macros/macros-global"]
+    "types": [
+      "unplugin-vue-macros/macros-global",
+      "vitest/globals"
+    ]
   },
   "include": [
     "src/**/*.ts",

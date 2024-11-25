@@ -64,5 +64,26 @@ const { refetch } = useRequest('/list/:id?page={page}&name={name}', {
     name: '张三'
   }
 })
+
+// or
+const { refetch } = useRequest('/list/:id', {
+  methods: 'post',
+  params: { id: 123 },
+  query: {
+    page: 2,
+    name: '张三'
+  }
+})
 // 匹配过后的会在params里面移除
+```
+
+## 当条件满足时自动发起请求
+```ts
+const currentStep = ref(Step.BASE_INFO)
+const { refetch } = useRequest('/list', {
+  when: computed(() => currentStep.value === Step.SELECT_DATA_SOURCE)
+})
+
+currentStep.value = Step.SELECT_DATA_SOURCE
+// 自动发起请求
 ```
