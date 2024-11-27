@@ -81,7 +81,9 @@ const { refetch } = useRequest('/list/:id', {
 ```ts
 const currentStep = ref(Step.BASE_INFO)
 const { refetch } = useRequest('/list', {
-  when: computed(() => currentStep.value === Step.SELECT_DATA_SOURCE)
+  when: computed(() => currentStep.value === Step.SELECT_DATA_SOURCE),
+  // 是否只请求一次，只给单独使用when时使用，因为when的条件可能会变，如果只需要一次，则使用once
+  once: true
 })
 
 currentStep.value = Step.SELECT_DATA_SOURCE

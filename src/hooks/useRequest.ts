@@ -32,6 +32,11 @@ interface UseRequestOptions {
    */
   when?: Ref<boolean>
   /**
+   * 当when条件满足时是否只请求一次
+   * 默认值为true：由于when条件会发生变化，然而如果需要变化时执行有deps控制，所以默认值为true，特殊条件可以通过设置为false
+   */
+  once?: boolean
+  /**
    * 是否立即执行, 默认get会立即执行，post不会立即执行
    */
   immediate?: boolean
@@ -70,6 +75,7 @@ const useRequest = (
     immediate = true,
     preventRepeat,
     when,
+    once = true,
     onFinally,
     onSuccess,
     onError,
@@ -176,22 +182,30 @@ const useRequest = (
     }
   })
 
-  if(when) {
-    watch(when, (val) => {
-      if (val) fetchData()
-    })
-  }
-
   if (deps) {
     watch(deps, () => {
       if (immediate && isGet) fetchData()
     }, { deep: true })
   }
+  
+  if(when) {
+    const stop = watch(when, (val) => {
+      if (val) {
+        fetchData()
+        if(once) stop()
+      }
+    })
+  }
 
   return {
     data: result,
     loading,
-    refetch: fetchData
+    refetch: fetchData,
+    // gpt 建议命名，这里新增一个 run 方法
+    /**
+     * 发起请求
+     */
+    run: fetchData
   }
 }
 

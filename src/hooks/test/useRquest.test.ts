@@ -129,6 +129,35 @@ describe('useRequest', () => {
     app.unmount()
   })
 
+  it('once只请求一次', async () => {
+    const [result, app] = withSetup(() => {
+      const canRequest = ref(false)
+      const request = useRequest('/api/test', {
+        when: canRequest,
+        once: true
+      })
+
+      return { ...request, canRequest }
+    })
+
+    result.canRequest.value = true
+    await nextTick()
+
+    expect(http).toHaveBeenCalledOnce()
+
+    result.canRequest.value = false
+    await nextTick()
+
+    expect(http).toHaveBeenCalledOnce()
+
+    result.canRequest.value = true
+    await nextTick()
+
+    expect(http).toHaveBeenCalledOnce()
+
+    app.unmount()
+  })
+
   it('重复POST请求校验', async () => {
     const [result, app] = withSetup(() => 
       useRequest('/api/test3', {
